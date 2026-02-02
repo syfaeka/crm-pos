@@ -4,7 +4,6 @@ import { cn } from '../../../lib/utils';
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 
 export default function ProductCard({ product, onAddToCart }) {
-    // Use first variant price or range
     const price = product.variants?.[0]?.selling_price || 0;
     const hasMultipleVariants = (product.variants?.length || 0) > 1;
     const stock = product.variants?.[0]?.stock_qty || 0;

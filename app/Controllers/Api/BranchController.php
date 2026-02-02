@@ -12,7 +12,6 @@ class BranchController extends BaseApiController
     {
         $db = \Config\Database::connect();
 
-        // Branches belong to stores, stores belong to tenants
         $branches = $db->table('branches b')
             ->select('b.*, s.name as store_name')
             ->join('stores s', 's.id = b.store_id')
@@ -61,7 +60,6 @@ class BranchController extends BaseApiController
 
         $db = \Config\Database::connect();
 
-        // Get the store for this tenant (assume first/default store)
         $store = $db->table('stores')
             ->where('tenant_id', $this->tenantId)
             ->where('is_active', true)
@@ -72,7 +70,6 @@ class BranchController extends BaseApiController
             return $this->error('No active store found for this tenant', 400);
         }
 
-        // Generate unique code
         $code = strtoupper(substr(preg_replace('/[^a-zA-Z0-9]/', '', $data['name']), 0, 5));
         $existing = $db->table('branches')
             ->where('store_id', $store->id)

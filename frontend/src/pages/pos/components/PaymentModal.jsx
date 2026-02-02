@@ -11,7 +11,7 @@ export default function PaymentModal({ open, onClose, totals, cart, onSuccess })
     const [isProcessing, setIsProcessing] = useState(false);
     const [saleResult, setSaleResult] = useState(null);
 
-    // --- POINTS REDEMPTION STATE ---
+    //  POINTS REDEMPTION STATE 
     const [usePoints, setUsePoints] = useState(false);
 
     // Reset points toggle when modal opens/closes
@@ -23,10 +23,10 @@ export default function PaymentModal({ open, onClose, totals, cart, onSuccess })
         }
     }, [open]);
 
-    // --- POINTS LOGIC ---
+    //  POINTS LOGIC 
     const customer = totals.customer;
     const availablePoints = customer?.total_points || 0;
-    const pointsValue = availablePoints * 100; // 1 point = Rp 100
+    const pointsValue = availablePoints * 100; 
 
     // Calculate final totals
     const initialTotal = totals.total;
@@ -69,18 +69,17 @@ export default function PaymentModal({ open, onClose, totals, cart, onSuccess })
 
                 customer_id: totals.customer ? totals.customer.id : null,
 
-                // Note: Tier discounts are calculated on backend, but we pass these for completeness
                 discount_value: totals.discount || 0,
                 tax_amount: totals.tax || 0,
                 notes: '',
 
                 items: cart.map(item => ({
-                    variant_id: item.variant_id || item.id, // Fallback to id if variant_id missing
+                    variant_id: item.variant_id || item.id, 
                     quantity: item.quantity,
                     discount: 0
                 })),
 
-                // --- NEW: POINTS REDEMPTION ---
+                //  NEW: POINTS REDEMPTION 
                 use_points: usePoints,
                 points_amount: usePoints ? redeemedPointsCount : 0,
 
@@ -101,7 +100,6 @@ export default function PaymentModal({ open, onClose, totals, cart, onSuccess })
                 paymentMethod: paymentMethod,
                 cashGiven: parseInt(cashGiven) || finalTotal,
                 change: change,
-                // Add points info for receipt
                 pointsRedeemed: data.data.points_redeemed || 0,
                 pointsDiscount: data.data.points_discount || 0
             });
@@ -118,7 +116,7 @@ export default function PaymentModal({ open, onClose, totals, cart, onSuccess })
         const printWindow = window.open('', '_blank', 'width=400,height=600');
         const customerName = saleResult?.customer?.name || totals.customer?.name || 'Guest';
 
-        // Receipt formatting logic...
+        // Receipt formatting logic
         printWindow.document.write(`
             <html>
             <head>

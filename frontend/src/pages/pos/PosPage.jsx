@@ -28,9 +28,7 @@ export default function PosPage() {
 
     const { data: categories = [] } = useQuery({
         queryKey: ['categories'],
-        queryFn: async () => { // Fetch from backend if endpoint exists
-            // For mock, return static list or fetch if API exists (e.g. /categories)
-            // Assuming endpoint exists or we mock it.
+        queryFn: async () => { 
             try {
                 const res = await api.get('/categories');
                 return res.data.data || [];
@@ -46,10 +44,7 @@ export default function PosPage() {
     };
 
     const handlePaymentSuccess = () => {
-        // PaymentModal handles closing itself or success state
-        // We can clear cart here if needed
         clearCart();
-        // Do NOT close modal here, let user close it after viewing receipt
     };
 
     return (

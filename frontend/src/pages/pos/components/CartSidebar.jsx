@@ -4,24 +4,24 @@ import { cn } from '../../../lib/utils';
 import api from '../../../lib/api';
 
 export default function CartSidebar({ cart, onUpdateQty, onRemove, onCheckout, onClear, onAddToCart }) {
-    // --- STATE VOUCHER ---
+    //  STATE VOUCHER 
     const [voucherCode, setVoucherCode] = useState('');
     const [voucherLoading, setVoucherLoading] = useState(false);
     const [voucher, setVoucher] = useState(null);
     const [voucherError, setVoucherError] = useState('');
 
-    // --- STATE CUSTOMER ---
+    //  STATE CUSTOMER 
     const [customerSearch, setCustomerSearch] = useState('');
     const [customers, setCustomers] = useState([]);
     const [selectedCustomer, setSelectedCustomer] = useState(null);
     const [showCustomerList, setShowCustomerList] = useState(false);
     const [isSearchingCustomer, setIsSearchingCustomer] = useState(false);
 
-    // --- STATE FAVORITES (NEW) ---
+    // STATE FAVORITES
     const [favorites, setFavorites] = useState([]);
     const [loadingFavorites, setLoadingFavorites] = useState(false);
 
-    // --- STATE SETTINGS ---
+    // STATE SETTINGS
     const [storeSettings, setStoreSettings] = useState({ tax_rate: 11 });
 
     useEffect(() => {
@@ -35,16 +35,9 @@ export default function CartSidebar({ cart, onUpdateQty, onRemove, onCheckout, o
         }
     }, []);
 
-    // --- CALCULATE TIER (Frontend logic for display) ---
+    // CALCULATE TIER 
     const getTierInfo = (customer) => {
         if (!customer) return null;
-        // Logic matches backend:
-        // Bronze: < 1M (0%)
-        // Silver: >= 1M < 5M (5%)
-        // Gold: >= 5M (10%)
-
-        // If backend already provides tier_name, use it to derive style
-        // Otherwise calculate from total_spent
         const spent = parseFloat(customer.total_spent || 0);
 
         if (spent > 5000000) return { name: 'Gold', color: 'bg-yellow-100 text-yellow-800 border-yellow-200', iconColor: 'text-yellow-600', discount: 10 };
@@ -204,27 +197,8 @@ export default function CartSidebar({ cart, onUpdateQty, onRemove, onCheckout, o
                                         {favorites.map(fav => (
                                             <button
                                                 key={fav.product_id}
-                                                // Assuming parent handles mapping fav item to cart structure or we construct it here
                                                 onClick={() => onAddToCart && onAddToCart({
-                                                    id: fav.product_id, // Ensure ID mismatch handled if fav uses product_id vs variant_id
-                                                    // This might need adjustment based on how addToCart expects data. 
-                                                    // Usually needs variant_id. For now passing what we have.
-                                                    // If Favorite returns product_id, we might need to find variant. 
-                                                    // Assuming simple product = variant for now or favorite returns variant_id.
-                                                    // The backend returns product_id. Front end usually needs variant_id.
-                                                    // Let's assume onAddToCart handles it or we pass product_id as variant_id if simple.
-                                                    // Actually, looking at backend implementation, create takes variant_id.
-                                                    // The favorite endpoint returns product_id. 
-                                                    // Wait, CartSidebar usually receives onAddToCart which usually takes a product object.
-                                                    // The product object in ProductsPage usually has id (product_id) and variants.
-                                                    // If the favorite item is clicked, we might need a variant selection or assume default variant.
-                                                    // Let's pass the fav object and let the handler decide, but add variant_id if missing.
-                                                    // Wait, the favorites query joins variant! 
-                                                    // "INNER JOIN product_variants pv ON pv.id = si.variant_id"
-                                                    // But the select is "p.id as product_id". 
-                                                    // Ah, I should have selected variant_id in the backend query if I wanted to add specific variant.
-                                                    // The user requirement says "Call addToCart(product)". 
-                                                    // I will pass the object.
+                                                    id: fav.product_id,
                                                     ...fav,
                                                     id: fav.product_id,
                                                     name: fav.product_name
@@ -419,7 +393,6 @@ export default function CartSidebar({ cart, onUpdateQty, onRemove, onCheckout, o
                 <button
                     onClick={() => onCheckout({
                         subtotal,
-                        // Note: actual discount calc happens on backend, but we pass these for UI consistency if needed
                         discount: totalDiscount,
                         tax: Math.round(tax),
                         total: Math.round(total),
