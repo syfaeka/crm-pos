@@ -8,7 +8,6 @@ class PasswordResetsTableSeeder extends Seeder
 {
     public function run()
     {
-        // Check if password_resets table exists, if not create it
         if (!$this->db->tableExists('password_resets')) {
             $forge = \Config\Database::forge();
 

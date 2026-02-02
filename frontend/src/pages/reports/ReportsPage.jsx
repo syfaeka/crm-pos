@@ -235,7 +235,6 @@ export default function ReportsPage() {
     );
 }
 
-// Component Kartu Statistik (Tidak Berubah)
 function StatCard({ title, value, icon: Icon, color, loading }) {
     const colorClasses = {
         blue: 'bg-blue-50 text-blue-600',
