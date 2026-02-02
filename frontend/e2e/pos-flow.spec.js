@@ -12,19 +12,19 @@ test.describe('POS Cashier Flow', () => {
     });
 
     test('should complete a cash transaction', async ({ page }) => {
-        // 1. Add product to cart
+        // Add product to cart
         // Wait for products to load
         await expect(page.locator('text=Americano')).toBeVisible({ timeout: 10000 });
         await page.click('text=Americano'); // Click first product card
 
-        // 2. Verify cart update
+        // Verify cart update
         await expect(page.locator('text=Current Order')).toBeVisible();
         await expect(page.locator('text=Americano')).toBeVisible();
 
-        // 3. Checkout
+        // Checkout
         await page.click('button:has-text("Charge")');
 
-        // 4. Payment Modal
+        // Payment Modal
         await expect(page.locator('text=Payment')).toBeVisible();
         await expect(page.locator('text=Total Amount Due')).toBeVisible();
 
@@ -34,14 +34,14 @@ test.describe('POS Cashier Flow', () => {
         // Use "Cash Received" input
         await page.fill('input[placeholder="Enter amount"]', '100000');
 
-        // 5. Confirm Payment
+        // Confirm Payment
         await page.click('button:has-text("Confirm Payment")');
 
-        // 6. Success Screen
+        // Success Screen
         await expect(page.locator('text=Payment Successful')).toBeVisible();
         await expect(page.locator('text=Print Receipt')).toBeVisible();
 
-        // 7. New Order
+        // New Order
         await page.click('button:has-text("New Order")');
         await expect(page.locator('text=Payment Successful')).not.toBeVisible();
     });

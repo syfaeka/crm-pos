@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { BadgeDollarSign, ShoppingBag, Users, TrendingUp, Calendar, Download, FileText, Loader2 } from 'lucide-react';
+import { BadgeDollarSign, ShoppingBag, TrendingUp, Calendar, Download, Loader2, Package } from 'lucide-react';
 import api from '../../lib/api';
 
 export default function ReportsPage() {
@@ -14,24 +14,25 @@ export default function ReportsPage() {
         }
     });
 
-    const { data: inventory, isLoading: loadingInventory } = useQuery({
-        queryKey: ['inventory-report'],
-        queryFn: async () => {
-            const res = await api.get('/reports/inventory');
-            return res.data.data;
-        }
-    });
-
     const { data: bestSellers, isLoading: loadingBestSellers } = useQuery({
         queryKey: ['best-sellers', date],
         queryFn: async () => {
-            const res = await api.get('/reports/best-sellers', { params: { date_from: date, limit: 10 } });
+            const res = await api.get('/reports/best-sellers', { params: { date_from: date, limit: 3 } });
+            return res.data.data || [];
+        }
+    });
+
+    const { data: salesHistory, isLoading: loadingHistory } = useQuery({
+        queryKey: ['sales-history', date],
+        queryFn: async () => {
+            const res = await api.get('/reports/sales-history', { params: { date } });
             return res.data.data || [];
         }
     });
 
     const exportCSV = (data, filename) => {
         if (!data || data.length === 0) return;
+        
         const headers = Object.keys(data[0]);
         const csvContent = [
             headers.join(','),
@@ -45,8 +46,11 @@ export default function ReportsPage() {
         link.click();
     };
 
+    const totalItemsSold = salesHistory?.reduce((acc, item) => acc + parseInt(item.quantity), 0) || 0;
+
     return (
         <div className="space-y-6">
+            {/* Header */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900">Reports & Analytics</h1>
@@ -63,7 +67,7 @@ export default function ReportsPage() {
                 </div>
             </div>
 
-            {/* Stats Grid */}
+            {}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <StatCard
                     title="Total Revenue"
@@ -86,21 +90,20 @@ export default function ReportsPage() {
                     color="purple"
                     loading={loadingSales}
                 />
+                {}
                 <StatCard
-                    title="Low Stock Items"
-                    value={inventory?.low_stock_count || 0}
-                    icon={Users}
+                    title="Items Sold Today"
+                    value={totalItemsSold}
+                    icon={Package}
                     color="orange"
-                    loading={loadingInventory}
+                    loading={loadingHistory}
                 />
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Payment Breakdown */}
+                {}
                 <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-6">
-                    <div className="flex justify-between items-center mb-4">
-                        <h3 className="font-bold text-gray-900">Payment Methods</h3>
-                    </div>
+                    <h3 className="font-bold text-gray-900 mb-4">Payment Methods</h3>
                     {loadingSales ? (
                         <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin text-gray-400" /></div>
                     ) : (
@@ -118,16 +121,16 @@ export default function ReportsPage() {
                                 </div>
                             ))}
                             {(!dailySales?.payment_breakdown || Object.keys(dailySales?.payment_breakdown).length === 0) && (
-                                <p className="text-gray-400 text-center py-4">No payments recorded for this date</p>
+                                <p className="text-gray-400 text-center py-4">No payments recorded</p>
                             )}
                         </div>
                     )}
                 </div>
 
-                {/* Best Sellers */}
+                {}
                 <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-6">
                     <div className="flex justify-between items-center mb-4">
-                        <h3 className="font-bold text-gray-900">Best Selling Products</h3>
+                        <h3 className="font-bold text-gray-900">Best Sellers</h3>
                         <button
                             onClick={() => exportCSV(bestSellers, 'best_sellers')}
                             className="text-sm text-primary hover:underline flex items-center"
@@ -140,64 +143,89 @@ export default function ReportsPage() {
                         <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin text-gray-400" /></div>
                     ) : bestSellers && bestSellers.length > 0 ? (
                         <div className="space-y-3">
-                            {bestSellers.slice(0, 5).map((item, idx) => (
-                                <div key={idx} className="flex justify-between items-center py-2 border-b border-gray-50 last:border-0">
+                            {bestSellers.map((item, idx) => (
+                                <div key={idx} className="flex justify-between items-center py-3 border-b border-gray-50 last:border-0">
                                     <div className="flex items-center">
-                                        <span className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center text-xs font-bold text-gray-600 mr-3">
+                                        {}
+                                        <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold mr-3 
+                                            ${idx === 0 ? 'bg-yellow-100 text-yellow-700' : 
+                                              idx === 1 ? 'bg-gray-100 text-gray-700' : 
+                                              'bg-orange-50 text-orange-700'}`}>
                                             {idx + 1}
                                         </span>
-                                        <span className="font-medium text-gray-900">{item.product_name}</span>
+                                        <div>
+                                            <p className="font-medium text-gray-900">{item.product_name}</p>
+                                            <p className="text-xs text-gray-500">Rp {parseInt(item.total_revenue).toLocaleString('id-ID')}</p>
+                                        </div>
                                     </div>
-                                    <span className="text-sm text-gray-500">{item.total_qty} sold</span>
+                                    <div className="text-right">
+                                        <span className="block font-bold text-gray-900">{item.total_qty} sold</span>
+                                    </div>
                                 </div>
                             ))}
                         </div>
                     ) : (
-                        <p className="text-gray-400 text-center py-4">No sales data for this date</p>
+                        <p className="text-gray-400 text-center py-4">No sales data</p>
                     )}
                 </div>
             </div>
 
-            {/* Inventory Status */}
+            {}
             <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-6">
                 <div className="flex justify-between items-center mb-4">
-                    <h3 className="font-bold text-gray-900">Inventory Status</h3>
+                    <h3 className="font-bold text-gray-900">Sales History (Items)</h3>
                     <button
-                        onClick={() => exportCSV(inventory?.items || [], 'inventory')}
+                        onClick={() => exportCSV(salesHistory, 'sales_history')}
                         className="text-sm text-primary hover:underline flex items-center"
                     >
                         <Download className="w-4 h-4 mr-1" />
                         Export CSV
                     </button>
                 </div>
-                {loadingInventory ? (
+                
+                {loadingHistory ? (
                     <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin text-gray-400" /></div>
                 ) : (
                     <div className="overflow-x-auto">
                         <table className="min-w-full divide-y divide-gray-200">
                             <thead className="bg-gray-50">
                                 <tr>
-                                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Product</th>
-                                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">SKU</th>
-                                    <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Stock</th>
-                                    <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Value</th>
-                                    <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Status</th>
+                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Time</th>
+                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Product</th>
+                                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Qty</th>
+                                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Price</th>
+                                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Total</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100">
-                                {(inventory?.items || []).slice(0, 10).map((item, idx) => (
-                                    <tr key={idx} className="hover:bg-gray-50">
-                                        <td className="px-4 py-2 text-sm text-gray-900">{item.product_name}</td>
-                                        <td className="px-4 py-2 text-sm text-gray-500">{item.sku}</td>
-                                        <td className="px-4 py-2 text-sm text-right">{item.stock_qty}</td>
-                                        <td className="px-4 py-2 text-sm text-right">Rp {parseInt(item.stock_value || 0).toLocaleString('id-ID')}</td>
-                                        <td className="px-4 py-2 text-center">
-                                            <span className={`px-2 py-1 text-xs font-medium rounded-full ${item.stock_qty <= (item.min_stock || 10) ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
-                                                {item.stock_qty <= (item.min_stock || 10) ? 'Low Stock' : 'OK'}
-                                            </span>
+                                {salesHistory && salesHistory.length > 0 ? (
+                                    salesHistory.map((item, idx) => (
+                                        <tr key={idx} className="hover:bg-gray-50">
+                                            <td className="px-4 py-2 text-sm text-gray-500">
+                                                {}
+                                                {new Date(item.transaction_date).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+                                            </td>
+                                            <td className="px-4 py-2 text-sm font-medium text-gray-900">
+                                                {item.product_name}
+                                            </td>
+                                            <td className="px-4 py-2 text-sm text-center">
+                                                {item.quantity}
+                                            </td>
+                                            <td className="px-4 py-2 text-sm text-right text-gray-500">
+                                                Rp {parseInt(item.unit_price).toLocaleString('id-ID')}
+                                            </td>
+                                            <td className="px-4 py-2 text-sm text-right font-medium text-gray-900">
+                                                Rp {parseInt(item.subtotal).toLocaleString('id-ID')}
+                                            </td>
+                                        </tr>
+                                    ))
+                                ) : (
+                                    <tr>
+                                        <td colSpan="5" className="px-4 py-8 text-center text-gray-400">
+                                            No items sold on this date.
                                         </td>
                                     </tr>
-                                ))}
+                                )}
                             </tbody>
                         </table>
                     </div>
@@ -207,6 +235,7 @@ export default function ReportsPage() {
     );
 }
 
+// Component Kartu Statistik (Tidak Berubah)
 function StatCard({ title, value, icon: Icon, color, loading }) {
     const colorClasses = {
         blue: 'bg-blue-50 text-blue-600',

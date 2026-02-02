@@ -30,6 +30,7 @@ class CustomerModel extends Model
         'total_spent',
         'visit_count',
         'last_visit_at',
+        'total_points',
         'is_active'
     ];
 

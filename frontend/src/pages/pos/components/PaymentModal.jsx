@@ -22,6 +22,7 @@ export default function PaymentModal({ open, onClose, totals, cart, onSuccess })
     ].filter((v, i, a) => a.indexOf(v) === i && v >= totals.total);
 
     const processPayment = async () => {
+        console.log("Isi Cart:", cart);
         if (!canPay) return;
         setIsProcessing(true);
 
@@ -30,6 +31,13 @@ export default function PaymentModal({ open, onClose, totals, cart, onSuccess })
 
             const payload = {
                 branch_id: user.branch_id || 1,
+                
+                customer_id: totals.customer ? totals.customer.id : null,
+                
+                discount_value: totals.discount || 0,
+                tax_amount: totals.tax || 0,
+                notes: '', 
+
                 items: cart.map(item => ({
                     variant_id: item.variant_id,
                     quantity: item.quantity,
@@ -45,6 +53,7 @@ export default function PaymentModal({ open, onClose, totals, cart, onSuccess })
             };
 
             const { data } = await api.post('/sales', payload);
+            
             setSaleResult({
                 ...data.data,
                 cart: cart,
@@ -63,6 +72,8 @@ export default function PaymentModal({ open, onClose, totals, cart, onSuccess })
 
     const handlePrint = () => {
         const printWindow = window.open('', '_blank', 'width=400,height=600');
+        const customerName = saleResult?.customer?.name || totals.customer?.name || 'Guest';
+        
         printWindow.document.write(`
             <html>
             <head>
@@ -84,6 +95,7 @@ export default function PaymentModal({ open, onClose, totals, cart, onSuccess })
                 <div class="line"></div>
                 <div class="row"><span>Invoice:</span><span>${saleResult?.invoice_number}</span></div>
                 <div class="row"><span>Date:</span><span>${new Date(saleResult?.transaction_date).toLocaleString('id-ID')}</span></div>
+                <div class="row"><span>Customer:</span><span>${customerName}</span></div>
                 <div class="row"><span>Cashier:</span><span>${JSON.parse(localStorage.getItem('user') || '{}').full_name || 'Staff'}</span></div>
                 <div class="line"></div>
                 <div class="items">
@@ -103,6 +115,7 @@ export default function PaymentModal({ open, onClose, totals, cart, onSuccess })
                 <div class="row"><span>${saleResult?.paymentMethod?.toUpperCase()}:</span><span>Rp ${parseInt(saleResult?.paid_amount || 0).toLocaleString('id-ID')}</span></div>
                 <div class="row"><span>Change:</span><span>Rp ${parseInt(saleResult?.change_amount || 0).toLocaleString('id-ID')}</span></div>
                 <div class="line"></div>
+                ${totals.customer ? `<div class="center" style="margin-top: 8px;">Points Earned: +${Math.floor(saleResult?.total_amount / 10000)}</div>` : ''}
                 <div class="center" style="margin-top: 16px;">Thank you for your purchase!</div>
                 <div class="center" style="font-size: 10px; margin-top: 8px;">www.kopikuy.com</div>
             </body>
@@ -117,16 +130,13 @@ export default function PaymentModal({ open, onClose, totals, cart, onSuccess })
     };
 
     const handleDownloadPDF = () => {
-        // For now, use print to PDF functionality
         handlePrint();
     };
 
-    // Receipt View after successful payment
     if (saleResult) {
         return (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
                 <div className="bg-white rounded-lg shadow-2xl w-full max-w-md overflow-hidden">
-                    {/* Success Header */}
                     <div className="bg-gradient-to-r from-green-500 to-emerald-600 p-6 text-center text-white">
                         <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3">
                             <CheckCircle className="w-10 h-10" />
@@ -135,13 +145,21 @@ export default function PaymentModal({ open, onClose, totals, cart, onSuccess })
                         <p className="text-green-100 mt-1">Transaction completed</p>
                     </div>
 
-                    {/* Receipt Content */}
                     <div className="p-6">
                         <div className="bg-gray-50 rounded-lg p-4 mb-4">
                             <div className="flex justify-between items-center mb-3">
                                 <span className="text-gray-500 text-sm">Invoice Number</span>
                                 <span className="font-mono font-bold text-gray-900">{saleResult.invoice_number}</span>
                             </div>
+                            
+                            {/* TAMPILKAN CUSTOMER DI RECEIPT LAYAR */}
+                            {totals.customer && (
+                                <div className="flex justify-between items-center mb-3 border-b border-gray-200 pb-2">
+                                    <span className="text-gray-500 text-sm">Customer</span>
+                                    <span className="font-bold text-gray-900">{totals.customer.name}</span>
+                                </div>
+                            )}
+
                             <div className="border-t border-gray-200 pt-3 space-y-2">
                                 {saleResult.cart?.slice(0, 3).map((item, idx) => (
                                     <div key={idx} className="flex justify-between text-sm">
@@ -172,7 +190,6 @@ export default function PaymentModal({ open, onClose, totals, cart, onSuccess })
                             </div>
                         </div>
 
-                        {/* Action Buttons */}
                         <div className="grid grid-cols-2 gap-3 mb-3">
                             <button
                                 onClick={handlePrint}
@@ -205,7 +222,6 @@ export default function PaymentModal({ open, onClose, totals, cart, onSuccess })
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
             <div className="bg-white rounded-lg shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
-                {/* Header */}
                 <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
                     <h2 className="text-lg font-bold">Payment</h2>
                     <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded-full">
@@ -213,7 +229,6 @@ export default function PaymentModal({ open, onClose, totals, cart, onSuccess })
                     </button>
                 </div>
 
-                {/* Body */}
                 <div className="p-6 overflow-y-auto">
                     <div className="text-center mb-6">
                         <span className="text-gray-500 text-sm">Total Amount Due</span>
@@ -221,6 +236,14 @@ export default function PaymentModal({ open, onClose, totals, cart, onSuccess })
                             Rp {totals.total.toLocaleString('id-ID')}
                         </div>
                     </div>
+
+                    {/* Menampilkan Customer yang dipilih (untuk verifikasi) */}
+                    {totals.customer && (
+                        <div className="mb-6 bg-blue-50 p-3 rounded-lg border border-blue-100 flex justify-between items-center">
+                            <span className="text-sm text-blue-700">Customer: <b>{totals.customer.name}</b></span>
+                            <span className="text-xs bg-blue-200 text-blue-800 px-2 py-1 rounded-full">Loyalty Member</span>
+                        </div>
+                    )}
 
                     <div className="mb-6">
                         <label className="block text-sm font-medium text-gray-700 mb-2">Payment Method</label>
@@ -274,7 +297,6 @@ export default function PaymentModal({ open, onClose, totals, cart, onSuccess })
                     )}
                 </div>
 
-                {/* Footer */}
                 <div className="px-6 py-4 border-t border-gray-100 bg-gray-50 flex justify-end">
                     <button
                         onClick={processPayment}

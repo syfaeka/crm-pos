@@ -78,7 +78,6 @@ class SaleController extends BaseApiController
             return $this->error('Payments are required', 422);
         }
 
-        // Determine branch_id: prefer user's assigned branch, fallback to request payload for owners
         $branchId = $this->branchId;
         if (empty($branchId)) {
             $branchId = $data['branch_id'] ?? null;
@@ -91,15 +90,20 @@ class SaleController extends BaseApiController
         $db->transBegin();
 
         try {
-            // Calculate totals
             $subtotal = 0;
             $saleItems = [];
 
             foreach ($data['items'] as $item) {
-                $variant = $this->variantModel->find($item['variant_id']);
-                if (!$variant) {
-                    throw new \Exception("Product variant {$item['variant_id']} not found");
-                }
+                $idOrSku = $item['variant_id'];
+                $variant = $this->variantModel->find($idOrSku);
+
+    if (!$variant) {
+        $variant = $this->variantModel->where('sku', $idOrSku)->first(); 
+    }
+
+    if (!$variant) {
+        throw new \Exception("Product variant {$idOrSku} not found");
+    }
 
                 $quantity = (int) $item['quantity'];
                 $unitPrice = $variant->selling_price;
@@ -118,24 +122,20 @@ class SaleController extends BaseApiController
                 $subtotal += $itemSubtotal;
             }
 
-            // Apply transaction discount
             $discountAmount = $data['discount_value'] ?? 0;
             if (($data['discount_type'] ?? 'none') === 'percentage') {
                 $discountAmount = $subtotal * ($data['discount_value'] / 100);
             }
 
-            // Calculate tax (11% PPN)
             $taxRate = 0.11;
             $taxableAmount = $subtotal - $discountAmount;
             $taxAmount = $taxableAmount * $taxRate;
 
             $totalAmount = $subtotal - $discountAmount + $taxAmount;
 
-            // Calculate payment total
             $paidAmount = array_sum(array_column($data['payments'], 'amount'));
             $changeAmount = $paidAmount - $totalAmount;
 
-            // Create sale record
             $saleData = [
                 'branch_id' => $branchId,
                 'customer_id' => $data['customer_id'] ?? null,
@@ -155,17 +155,14 @@ class SaleController extends BaseApiController
 
             $saleId = $this->saleModel->insert($saleData);
 
-            // Insert sale items
             foreach ($saleItems as $item) {
                 $item['sale_id'] = $saleId;
                 $item['created_at'] = date('Y-m-d H:i:s');
                 $db->table('sale_items')->insert($item);
 
-                // Deduct stock
                 $this->variantModel->adjustStock($item['variant_id'], $item['quantity'], 'out');
             }
 
-            // Insert payments
             foreach ($data['payments'] as $payment) {
                 $db->table('payments')->insert([
                     'sale_id' => $saleId,
@@ -177,8 +174,31 @@ class SaleController extends BaseApiController
                 ]);
             }
 
-            // Update customer stats
-            if (!empty($data['customer_id'])) {
+         if (!empty($data['customer_id'])) {
+                $pointsEarned = floor($totalAmount / 10000); 
+
+                $customer = $this->customerModel->find($data['customer_id']);
+                
+                if (!empty($data['customer_id'])) {
+                $pointsEarned = floor($totalAmount / 10000); 
+
+                $customer = $this->customerModel->find($data['customer_id']);
+                
+                if ($customer) {
+                    $custData = (array) $customer;
+                    
+                    $currentPoints = $custData['total_points'] ?? 0;
+                    
+                    $newPoints = $currentPoints + $pointsEarned;
+
+                    $this->customerModel->update($data['customer_id'], [
+                        'total_points' => $newPoints
+                    ]);
+                }
+
+                $this->customerModel->updateAfterPurchase($data['customer_id'], $totalAmount, 0);
+            }
+
                 $this->customerModel->updateAfterPurchase($data['customer_id'], $totalAmount, 0);
             }
 
@@ -212,7 +232,6 @@ class SaleController extends BaseApiController
             'updated_at' => date('Y-m-d H:i:s')
         ]);
 
-        // Restore stock
         $db = \Config\Database::connect();
         $items = $db->table('sale_items')->where('sale_id', $id)->get()->getResult();
         foreach ($items as $item) {
@@ -234,7 +253,6 @@ class SaleController extends BaseApiController
 
         $format = $this->request->getGet('format') ?? 'thermal';
 
-        // Generate receipt content
         $receipt = $this->generateReceipt($sale, $format);
 
         return $this->success([
@@ -318,7 +336,6 @@ class SaleController extends BaseApiController
 
         $this->saleModel->update($id, ['status' => 'refunded']);
 
-        // Restore stock
         $items = $db->table('sale_items')->where('sale_id', $id)->get()->getResult();
         foreach ($items as $item) {
             $this->variantModel->adjustStock($item->variant_id, $item->quantity, 'in');

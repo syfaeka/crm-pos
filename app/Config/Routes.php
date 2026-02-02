@@ -69,6 +69,7 @@ $routes->group('api/v1', ['namespace' => 'App\Controllers\Api'], static function
         // Reports
         $routes->get('reports/daily-sales', 'ReportController::dailySales');
         $routes->get('reports/inventory', 'ReportController::inventory');
+        $routes->get('reports/sales-history', 'ReportController::salesHistory');
         $routes->get('reports/best-sellers', 'ReportController::bestSellers');
 
         // Admin routes (Owner, Manager only)
