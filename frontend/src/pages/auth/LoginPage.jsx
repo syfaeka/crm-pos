@@ -2,11 +2,12 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
 import api from '../../lib/api';
-import { Coffee, Loader2 } from 'lucide-react';
+import { Loader2, Eye, EyeOff, Coffee } from 'lucide-react'; 
 
 export default function LoginPage() {
     const navigate = useNavigate();
     const [formData, setFormData] = useState({ username: '', password: '' });
+    const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState('');
 
     const loginMutation = useMutation({
@@ -17,8 +18,7 @@ export default function LoginPage() {
         onSuccess: (data) => {
             localStorage.setItem('token', data.data.access_token);
             localStorage.setItem('user', JSON.stringify(data.data.user));
-
-            // Redirect based on role
+            
             const roles = data.data.user.roles || [];
             if (roles.includes('cashier')) {
                 navigate('/pos');
@@ -37,57 +37,77 @@ export default function LoginPage() {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-50">
-            <div className="max-w-md w-full p-8 bg-white rounded-lg shadow-lg border border-gray-100">
+        <div 
+            className="min-h-screen flex items-center justify-center bg-cover bg-center bg-no-repeat relative"
+            style={{ 
+                backgroundImage: "url('https://plus.unsplash.com/premium_photo-1675237625862-d982e7f44696?q=80&w=1170&auto=format&fit=crop')" 
+            }} >
+            <div className="absolute inset-0 bg-black/20" />
+            <div className="w-full max-w-md p-8 relative z-10">
                 <div className="text-center mb-8">
-                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-4">
-                        <Coffee className="w-8 h-8 text-primary" />
+                    <div className="flex justify-center mb-4">
+                    <Coffee className="w-10 h-10 text-[#ffcdb2]" />
                     </div>
-                    <h1 className="text-2xl font-bold text-gray-900">Sign in to Kopi Kuy</h1>
-                    <p className="text-gray-500 mt-2">Enter your credentials to access the system</p>
+                    <h1 className="text-3xl font-normal text-white">Kopi Kuy</h1>
                 </div>
 
                 {error && (
-                    <div className="bg-red-50 text-red-600 p-3 rounded-md text-sm mb-4">
+                    <div className="bg-red-500/80 backdrop-blur-sm text-white p-3 rounded-md text-sm mb-6 text-center">
                         {error}
                     </div>
                 )}
 
-                <form onSubmit={handleSubmit} className="space-y-6">
+                <form onSubmit={handleSubmit} className="space-y-5">
+                    
+                    {/* Username Input */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>
                         <input
                             type="text"
+                            placeholder="Username"
                             required
-                            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-primary focus:border-primary outline-none transition-colors"
+                            className="w-full px-5 py-3 bg-gray-600/40 backdrop-blur-md border border-gray-500/30 rounded-full text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-[#ffcdb2] transition-all"
                             value={formData.username}
                             onChange={(e) => setFormData({ ...formData, username: e.target.value })}
                         />
                     </div>
 
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                    {/* Password Input */}
+                    <div className="relative">
                         <input
-                            type="password"
+                            type={showPassword ? "text" : "password"}
+                            placeholder="Password"
                             required
-                            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-primary focus:border-primary outline-none transition-colors"
+                            className="w-full px-5 py-3 bg-gray-600/40 backdrop-blur-md border border-gray-500/30 rounded-full text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-[#ffcdb2] transition-all"
                             value={formData.password}
                             onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                         />
+                        <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-300 hover:text-white"
+                        >
+                            {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                        </button>
                     </div>
 
+                    {/* Sign In Button */}
                     <button
                         type="submit"
                         disabled={loginMutation.isPending}
-                        className="w-full flex items-center justify-center bg-primary text-primary-foreground py-2 px-4 rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50"
+                        className="w-full bg-[#ffcdb2] hover:bg-[#ffb48a] text-gray-900 font-bold py-3 rounded-full uppercase tracking-wider transition-colors shadow-lg flex items-center justify-center mt-6"
                     >
                         {loginMutation.isPending ? (
-                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            <Loader2 className="w-5 h-5 mr-2 animate-spin" />
                         ) : null}
-                        Sign In
+                        SIGN IN
                     </button>
+
+                    {/* Footer Options */}
+                    <div className="flex items-center justify-between text-white text-sm px-1">
+                        <a href="#" className="hover:underline">Forgot Password</a>
+                    </div>
                 </form>
-            </div>
+            </div> 
         </div>
     );
 }
