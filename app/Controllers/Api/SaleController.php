@@ -71,7 +71,7 @@ class SaleController extends BaseApiController
     {
         $data = $this->request->getJSON(true);
 
-
+        // 1. Validasi Input
         if (empty($data['items']) || !is_array($data['items'])) {
             return $this->error('Items are required', 422);
         }
@@ -87,7 +87,7 @@ class SaleController extends BaseApiController
             return $this->error('Branch context is required.', 422);
         }
 
-        // Validate points_amount if provided
+        // Validate points
         $usePoints = !empty($data['use_points']);
         $requestedPoints = isset($data['points_amount']) ? (int) $data['points_amount'] : null;
 
@@ -99,6 +99,7 @@ class SaleController extends BaseApiController
         $db->transBegin();
 
         try {
+            // 2. Hitung Subtotal Item
             $subtotal = 0;
             $saleItems = [];
 
@@ -130,6 +131,8 @@ class SaleController extends BaseApiController
 
                 $subtotal += $itemSubtotal;
             }
+
+            // 3. Hitung Tier Discount (Member)
             $tierDiscount = 0;
             $tierName = 'Guest';
             $tierDiscountPercent = 0;
@@ -143,12 +146,10 @@ class SaleController extends BaseApiController
                     throw new \Exception("Customer not found");
                 }
                 $customer = (array) $customerData; 
-                // ------------------------------
 
                 // Calculate tier based on current total_spent
                 $tier = $this->customerModel->getTierBySpending((float) $customer['total_spent']); 
                 
-                // Handle jika return object atau array dari method getTierBySpending
                 $tierObj = (object) $tier;
                 $tierName = $tierObj->name;
                 $tierDiscountPercent = (float) $tierObj->discount_percent;
@@ -156,10 +157,17 @@ class SaleController extends BaseApiController
                 // Apply tier discount
                 $tierDiscount = $subtotal * ($tierDiscountPercent / 100);
             }
-            $manualDiscount = (float) ($data['discount_value'] ?? 0);
+
+            // 4. Hitung Voucher Discount
+            $voucherCode = $data['voucher_code'] ?? null; // Ambil kode voucher dari frontend
+            $voucherDiscount = (float) ($data['discount_value'] ?? 0);
+            
+            // Jika frontend mengirim tipe persen untuk voucher
             if (($data['discount_type'] ?? 'none') === 'percentage') {
-                $manualDiscount = $subtotal * ($manualDiscount / 100);
+                $voucherDiscount = $subtotal * ($voucherDiscount / 100);
             }
+
+            // 5. Hitung Points Redemption
             $pointsRedeemed = 0;
             $pointsDiscount = 0;
             $pointValue = 100; // 1 point = Rp 100
@@ -167,8 +175,9 @@ class SaleController extends BaseApiController
             if ($customer && $usePoints) {
                 $availablePoints = (int) $customer['total_points'];
                 
-                $amountAfterDiscounts = $subtotal - $tierDiscount - $manualDiscount;
-                $maxPointsValue = $amountAfterDiscounts;
+                // Poin memotong harga SETELAH diskon member & voucher
+                $amountAfterDiscounts = $subtotal - $tierDiscount - $voucherDiscount;
+                $maxPointsValue = max(0, $amountAfterDiscounts);
                 $maxPointsAllowed = (int) floor($maxPointsValue / $pointValue);
 
                 if ($requestedPoints !== null) {
@@ -186,13 +195,13 @@ class SaleController extends BaseApiController
                 }
             }
 
-
-            $totalDiscount = $tierDiscount + $manualDiscount + $pointsDiscount;
+            // 6. Total Akhir
+            $totalDiscount = $tierDiscount + $voucherDiscount + $pointsDiscount;
 
             $taxRate = 0.11;
-            $taxableAmount = $subtotal - $totalDiscount;
+            $taxableAmount = max(0, $subtotal - $totalDiscount);
             $taxAmount = $taxableAmount * $taxRate;
-            $totalAmount = $subtotal - $totalDiscount + $taxAmount;
+            $totalAmount = $taxableAmount + $taxAmount;
 
             if ($totalAmount < 0) {
                 throw new \Exception("Invalid discounts: total amount cannot be negative");
@@ -207,7 +216,7 @@ class SaleController extends BaseApiController
                 $pointsEarned = (int) floor($totalAmount / 10000);
             }
 
-
+            // 7. Simpan Data ke Database
             $saleData = [
                 'branch_id' => $branchId,
                 'customer_id' => $customerId,
@@ -216,6 +225,13 @@ class SaleController extends BaseApiController
                 'transaction_date' => date('Y-m-d H:i:s'),
                 'subtotal' => $subtotal,
                 'discount_amount' => $totalDiscount,
+                
+                // --- DATA BARU UNTUK STRUK ---
+                'voucher_code' => $voucherCode,
+                'voucher_amount' => $voucherDiscount,
+                'tier_discount_amount' => $tierDiscount,
+                // -----------------------------
+
                 'tax_amount' => $taxAmount,
                 'total_amount' => $totalAmount,
                 'paid_amount' => $paidAmount,
@@ -265,7 +281,6 @@ class SaleController extends BaseApiController
                 ]);
             }
 
-
             $db->transCommit();
 
             // Construct Response Manually
@@ -274,11 +289,11 @@ class SaleController extends BaseApiController
             $saleResponse->items = $saleItems;
             $saleResponse->payments = $data['payments'];
             
-            // Append CRM Info
+            // Append CRM Info for Response
             $saleResponse->tier_name = $tierName;
             $saleResponse->tier_discount = $tierDiscount;
             $saleResponse->tier_discount_percent = $tierDiscountPercent;
-            $saleResponse->manual_discount = $manualDiscount;
+            $saleResponse->manual_discount = $voucherDiscount;
             $saleResponse->points_discount = $pointsDiscount;
 
             return $this->success($saleResponse, 'Sale completed', 201);
@@ -326,6 +341,7 @@ class SaleController extends BaseApiController
 
     /**
      * GET /api/v1/sales/:id/receipt
+     * UPDATE: Menampilkan rincian diskon Member, Voucher, Poin
      */
     public function receipt($id = null)
     {
@@ -365,9 +381,35 @@ class SaleController extends BaseApiController
 
         $lines[] = str_repeat('-', 32);
         $lines[] = sprintf("Subtotal: %s", number_format($sale->subtotal, 0, ',', '.'));
-        if ($sale->discount_amount > 0) {
+        
+        // --- LOGIC BARU UNTUK RINCIAN DISKON ---
+        
+        // 1. Diskon Member (Tier)
+        if (!empty($sale->tier_discount_amount) && $sale->tier_discount_amount > 0) {
+            $lines[] = sprintf("Member Disc: -%s", number_format($sale->tier_discount_amount, 0, ',', '.'));
+        }
+
+        // 2. Diskon Voucher
+        if (!empty($sale->voucher_amount) && $sale->voucher_amount > 0) {
+            // Tampilkan kode voucher jika ada
+            $code = !empty($sale->voucher_code) ? " ({$sale->voucher_code})" : "";
+            $lines[] = sprintf("Voucher%s: -%s", $code, number_format($sale->voucher_amount, 0, ',', '.'));
+        }
+
+        // 3. Diskon Poin
+        if (!empty($sale->points_redeemed) && $sale->points_redeemed > 0) {
+            $pointsVal = $sale->points_redeemed * 100; // Asumsi 1 Poin = Rp 100
+            $lines[] = sprintf("Points Used: -%s", number_format($pointsVal, 0, ',', '.'));
+        }
+
+        // Fallback: Jika tidak ada detail (data lama) tapi ada total discount
+        if ($sale->discount_amount > 0 && 
+            empty($sale->tier_discount_amount) && 
+            empty($sale->voucher_amount) && 
+            empty($sale->points_redeemed)) {
             $lines[] = sprintf("Discount: -%s", number_format($sale->discount_amount, 0, ',', '.'));
         }
+
         $lines[] = sprintf("Tax: %s", number_format($sale->tax_amount, 0, ',', '.'));
         $lines[] = str_repeat('=', 32);
         $lines[] = sprintf("TOTAL: Rp %s", number_format($sale->total_amount, 0, ',', '.'));

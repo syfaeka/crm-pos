@@ -20,6 +20,9 @@ class SaleModel extends Model
         'transaction_date',
         'subtotal',
         'discount_amount',
+        'voucher_code',          
+        'voucher_amount',        
+        'tier_discount_amount',  
         'tax_amount',
         'total_amount',
         'paid_amount',
@@ -58,7 +61,9 @@ class SaleModel extends Model
      */
     public function getSaleWithDetails(int $saleId): ?object
     {
+        // Gunakan find() agar mengambil SEMUA kolom (termasuk voucher_amount dll)
         $sale = $this->find($saleId);
+        
         if (!$sale) {
             return null;
         }
@@ -80,9 +85,6 @@ class SaleModel extends Model
 
     /**
      * Get daily sales summary
-     * @param int|null $branchId - If null, aggregate across all branches for the tenant
-     * @param string $date
-     * @param int|null $tenantId - Used when branchId is null to scope to tenant
      */
     public function getDailySummary(?int $branchId, string $date, ?int $tenantId = null): object
     {
@@ -99,7 +101,6 @@ class SaleModel extends Model
         if ($branchId) {
             $builder->where('s.branch_id', $branchId);
         } elseif ($tenantId) {
-            // Join through branches → stores → tenant
             $builder->join('branches b', 'b.id = s.branch_id')
                 ->join('stores st', 'st.id = b.store_id')
                 ->where('st.tenant_id', $tenantId);

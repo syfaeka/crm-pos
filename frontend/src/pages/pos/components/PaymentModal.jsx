@@ -69,7 +69,11 @@ export default function PaymentModal({ open, onClose, totals, cart, onSuccess })
 
                 customer_id: totals.customer ? totals.customer.id : null,
 
-                discount_value: totals.discount || 0,
+                // Kirim data diskon/voucher
+                discount_value: totals.discount || 0, // Ini biasanya voucher
+                discount_type: totals.discountType || 'fixed', // Tambahkan ini jika ada di state PosPage
+                voucher_code: totals.voucherCode || null,      // Tambahkan ini jika ada di state PosPage
+                
                 tax_amount: totals.tax || 0,
                 notes: '',
 
@@ -94,15 +98,15 @@ export default function PaymentModal({ open, onClose, totals, cart, onSuccess })
 
             const { data } = await api.post('/sales', payload);
 
+            // Simpan hasil respons backend ke state untuk ditampilkan
             setSaleResult({
-                ...data.data,
+                ...data.data, // Data lengkap dari backend (termasuk voucher_amount, tier_discount, dll)
                 cart: cart,
                 paymentMethod: paymentMethod,
                 cashGiven: parseInt(cashGiven) || finalTotal,
-                change: change,
-                pointsRedeemed: data.data.points_redeemed || 0,
-                pointsDiscount: data.data.points_discount || 0
+                change: change
             });
+            
             if (onSuccess) onSuccess();
         } catch (error) {
             console.error('Payment failed', error);
@@ -152,9 +156,13 @@ export default function PaymentModal({ open, onClose, totals, cart, onSuccess })
                 <div class="line"></div>
                 <div class="row"><span>Subtotal:</span><span>Rp ${parseInt(saleResult?.subtotal || 0).toLocaleString('id-ID')}</span></div>
                 
-                ${saleResult?.tier_discount > 0 ? `<div class="row"><span>${saleResult.tier_name} Disc:</span><span>-Rp ${parseInt(saleResult.tier_discount).toLocaleString('id-ID')}</span></div>` : ''}
+                ${/* --- UPDATED: DISKON VOUCHER, MEMBER, & POIN --- */ ''}
                 
-                ${saleResult?.points_discount > 0 ? `<div class="row"><span>Points (${saleResult.points_redeemed}):</span><span>-Rp ${parseInt(saleResult.points_discount).toLocaleString('id-ID')}</span></div>` : ''}
+                ${saleResult?.tier_discount_amount > 0 ? `<div class="row"><span>Member Disc (${saleResult.tier_name}):</span><span>-Rp ${parseInt(saleResult.tier_discount_amount).toLocaleString('id-ID')}</span></div>` : ''}
+                
+                ${saleResult?.voucher_amount > 0 ? `<div class="row"><span>Voucher ${saleResult.voucher_code ? '('+saleResult.voucher_code+')' : ''}:</span><span>-Rp ${parseInt(saleResult.voucher_amount).toLocaleString('id-ID')}</span></div>` : ''}
+                
+                ${saleResult?.points_redeemed > 0 ? `<div class="row"><span>Points (${saleResult.points_redeemed}):</span><span>-Rp ${parseInt(saleResult.points_redeemed * 100).toLocaleString('id-ID')}</span></div>` : ''}
 
                 <div class="row"><span>Tax:</span><span>Rp ${parseInt(saleResult?.tax_amount || 0).toLocaleString('id-ID')}</span></div>
                 <div class="line"></div>
@@ -220,19 +228,25 @@ export default function PaymentModal({ open, onClose, totals, cart, onSuccess })
                                 )}
                             </div>
 
-                            {/* Points Discount in Receipt Preview */}
-                            {(saleResult.points_discount > 0 || saleResult.tier_discount > 0) && (
+                            {/* --- UPDATED: PREVIEW DISKON DI LAYAR --- */}
+                            {(saleResult.points_redeemed > 0 || saleResult.tier_discount_amount > 0 || saleResult.voucher_amount > 0) && (
                                 <div className="border-t border-gray-200 mt-3 pt-2 text-xs text-green-600 space-y-1">
-                                    {saleResult.tier_discount > 0 && (
+                                    {saleResult.tier_discount_amount > 0 && (
                                         <div className="flex justify-between">
-                                            <span>Member Discount</span>
-                                            <span>-Rp {parseInt(saleResult.tier_discount).toLocaleString('id-ID')}</span>
+                                            <span>Member Disc ({saleResult.tier_name})</span>
+                                            <span>-Rp {parseInt(saleResult.tier_discount_amount).toLocaleString('id-ID')}</span>
                                         </div>
                                     )}
-                                    {saleResult.points_discount > 0 && (
+                                    {saleResult.voucher_amount > 0 && (
+                                        <div className="flex justify-between">
+                                            <span>Voucher {saleResult.voucher_code ? `(${saleResult.voucher_code})` : ''}</span>
+                                            <span>-Rp {parseInt(saleResult.voucher_amount).toLocaleString('id-ID')}</span>
+                                        </div>
+                                    )}
+                                    {saleResult.points_redeemed > 0 && (
                                         <div className="flex justify-between font-medium">
-                                            <span>Points Redeemed ({saleResult.points_redeemed})</span>
-                                            <span>-Rp {parseInt(saleResult.points_discount).toLocaleString('id-ID')}</span>
+                                            <span>Points Used ({saleResult.points_redeemed})</span>
+                                            <span>-Rp {parseInt(saleResult.points_redeemed * 100).toLocaleString('id-ID')}</span>
                                         </div>
                                     )}
                                 </div>
