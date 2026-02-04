@@ -35,6 +35,21 @@ export default function CartSidebar({ cart, onUpdateQty, onRemove, onCheckout, o
         }
     }, []);
 
+    // --- FIX 1: AUTO RESET SAAT KERANJANG KOSONG ---
+    // Mencegah voucher/customer nyangkut di transaksi berikutnya
+    useEffect(() => {
+        if (cart.length === 0) {
+            setVoucher(null);
+            setVoucherCode('');
+            setVoucherError('');
+            // Optional: Reset customer juga kalau mau
+            // setSelectedCustomer(null);
+            // setCustomerSearch('');
+            // setFavorites([]);
+        }
+    }, [cart.length]); 
+    // ------------------------------------------------
+
     // CALCULATE TIER 
     const getTierInfo = (customer) => {
         if (!customer) return null;
@@ -56,7 +71,7 @@ export default function CartSidebar({ cart, onUpdateQty, onRemove, onCheckout, o
 
     const voucherDiscountAmount = voucher?.discount_amount || 0;
 
-    // Total discount
+    // Total discount (Hanya untuk tampilan di Sidebar)
     const totalDiscount = tierDiscountAmount + voucherDiscountAmount;
 
     const taxableAmount = subtotal - totalDiscount;
@@ -354,7 +369,6 @@ export default function CartSidebar({ cart, onUpdateQty, onRemove, onCheckout, o
                         <span>Rp {subtotal.toLocaleString('id-ID')}</span>
                     </div>
 
-                    {/* Tier Discount Display - Visual Enhancement */}
                     {tierDiscountAmount > 0 && (
                         <div className="flex justify-between text-sm text-blue-600">
                             <span className="flex items-center gap-1">
@@ -393,7 +407,8 @@ export default function CartSidebar({ cart, onUpdateQty, onRemove, onCheckout, o
                 <button
                     onClick={() => onCheckout({
                         subtotal,
-                        discount: totalDiscount,
+                        
+                        discount: voucherDiscountAmount, 
                         tax: Math.round(tax),
                         total: Math.round(total),
                         voucher,
