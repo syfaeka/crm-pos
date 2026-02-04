@@ -160,7 +160,13 @@ export default function PaymentModal({ open, onClose, totals, cart, onSuccess })
                 
                 ${saleResult?.tier_discount_amount > 0 ? `<div class="row"><span>Member Disc (${saleResult.tier_name}):</span><span>-Rp ${parseInt(saleResult.tier_discount_amount).toLocaleString('id-ID')}</span></div>` : ''}
                 
-                ${saleResult?.voucher_amount > 0 ? `<div class="row"><span>Voucher ${saleResult.voucher_code ? '('+saleResult.voucher_code+')' : ''}:</span><span>-Rp ${parseInt(saleResult.voucher_amount).toLocaleString('id-ID')}</span></div>` : ''}
+               ${saleResult?.voucher_amount > 0 ? 
+                    `<div class="row">
+                        <span>${saleResult.voucher_code ? `Voucher (${saleResult.voucher_code})` : 'Discount'}:</span>
+                        <span>-Rp ${parseInt(saleResult.voucher_amount).toLocaleString('id-ID')}</span>
+                    </div>` 
+                    : ''
+                }
                 
                 ${saleResult?.points_redeemed > 0 ? `<div class="row"><span>Points (${saleResult.points_redeemed}):</span><span>-Rp ${parseInt(saleResult.points_redeemed * 100).toLocaleString('id-ID')}</span></div>` : ''}
 
@@ -239,7 +245,7 @@ export default function PaymentModal({ open, onClose, totals, cart, onSuccess })
                                     )}
                                     {saleResult.voucher_amount > 0 && (
                                         <div className="flex justify-between">
-                                            <span>Voucher {saleResult.voucher_code ? `(${saleResult.voucher_code})` : ''}</span>
+                                            <span>{saleResult.voucher_code ? `Voucher (${saleResult.voucher_code})` : 'Discount'}</span>
                                             <span>-Rp {parseInt(saleResult.voucher_amount).toLocaleString('id-ID')}</span>
                                         </div>
                                     )}

@@ -128,9 +128,10 @@ public function create()
 
             $voucherCode = $data['voucher_code'] ?? null;
             $voucherDiscount = (float) ($data['discount_value'] ?? 0);         
-            if (($data['discount_type'] ?? 'none') === 'percentage') {
-                $voucherDiscount = $subtotal * ($voucherDiscount / 100);
-            }
+            if ($voucherDiscount <= 0) {
+            $voucherDiscount = 0;
+            $voucherCode = null;
+        }
 
             $pointsRedeemed = 0;
             $pointsDiscount = 0;
@@ -287,25 +288,8 @@ public function create()
 
     /**
      * GET /api/v1/sales/:id/receipt
-     * UPDATE: Menampilkan rincian diskon Member, Voucher, Poin
      */
-    public function receipt($id = null)
-    {
-        $sale = $this->saleModel->getSaleWithDetails($id);
-        if (!$sale || $sale->branch_id != $this->branchId) {
-            return $this->error('Sale not found', 404);
-        }
-
-        $format = $this->request->getGet('format') ?? 'thermal';
-        $receipt = $this->generateReceipt($sale, $format);
-
-        return $this->success([
-            'format' => $format,
-            'content' => $receipt
-        ]);
-    }
-
-    private function generateReceipt($sale, string $format): string
+private function generateReceipt($sale, string $format): string
     {
         $lines = [];
         $lines[] = str_repeat('=', 32);
@@ -328,32 +312,21 @@ public function create()
         $lines[] = str_repeat('-', 32);
         $lines[] = sprintf("Subtotal: %s", number_format($sale->subtotal, 0, ',', '.'));
         
-        // --- LOGIC BARU UNTUK RINCIAN DISKON ---
-        
-        // 1. Diskon Member (Tier)
         if (!empty($sale->tier_discount_amount) && $sale->tier_discount_amount > 0) {
             $lines[] = sprintf("Member Disc: -%s", number_format($sale->tier_discount_amount, 0, ',', '.'));
         }
 
-        // 2. Diskon Voucher
         if (!empty($sale->voucher_amount) && $sale->voucher_amount > 0) {
-            // Tampilkan kode voucher jika ada
-            $code = !empty($sale->voucher_code) ? " ({$sale->voucher_code})" : "";
-            $lines[] = sprintf("Voucher%s: -%s", $code, number_format($sale->voucher_amount, 0, ',', '.'));
+            if (!empty($sale->voucher_code)) {
+                $lines[] = sprintf("Voucher (%s): -%s", $sale->voucher_code, number_format($sale->voucher_amount, 0, ',', '.'));
+            } else {
+                $lines[] = sprintf("Discount: -%s", number_format($sale->voucher_amount, 0, ',', '.'));
+            }
         }
 
-        // 3. Diskon Poin
         if (!empty($sale->points_redeemed) && $sale->points_redeemed > 0) {
-            $pointsVal = $sale->points_redeemed * 100; // Asumsi 1 Poin = Rp 100
+            $pointsVal = $sale->points_redeemed * 100;
             $lines[] = sprintf("Points Used: -%s", number_format($pointsVal, 0, ',', '.'));
-        }
-
-        // Fallback: Jika tidak ada detail (data lama) tapi ada total discount
-        if ($sale->discount_amount > 0 && 
-            empty($sale->tier_discount_amount) && 
-            empty($sale->voucher_amount) && 
-            empty($sale->points_redeemed)) {
-            $lines[] = sprintf("Discount: -%s", number_format($sale->discount_amount, 0, ',', '.'));
         }
 
         $lines[] = sprintf("Tax: %s", number_format($sale->tax_amount, 0, ',', '.'));
@@ -362,16 +335,11 @@ public function create()
         $lines[] = str_repeat('=', 32);
 
         foreach ($sale->payments as $payment) {
-            $lines[] = sprintf(
-                "%s: Rp %s",
-                ucfirst($payment->payment_method),
-                number_format($payment->amount, 0, ',', '.')
-            );
+            $lines[] = sprintf("%s: Rp %s", ucfirst($payment->payment_method), number_format($payment->amount, 0, ',', '.'));
         }
         if ($sale->change_amount > 0) {
             $lines[] = sprintf("Change: Rp %s", number_format($sale->change_amount, 0, ',', '.'));
         }
-        
         if (isset($sale->points_earned) && $sale->points_earned > 0) {
             $lines[] = str_repeat('-', 32);
             $lines[] = sprintf("Points Earned: +%d", $sale->points_earned);
