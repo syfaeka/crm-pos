@@ -37,11 +37,12 @@ export default function LoginPage() {
     };
 
     return (
-        <div 
-            className="min-h-screen flex items-center justify-center bg-cover bg-center bg-no-repeat relative"
-            style={{ 
-                backgroundImage: "url('https://plus.unsplash.com/premium_photo-1675237625862-d982e7f44696?q=80&w=1170&auto=format&fit=crop')" 
-            }} >
+              <div
+                className="min-h-screen flex items-center justify-center bg-cover bg-center bg-no-repeat relative"
+                style={{
+                backgroundImage: "url('/image/kopi.jpg')"
+                }}
+                >
             <div className="absolute inset-0 bg-black/20" />
             <div className="w-full max-w-md p-8 relative z-10">
                 <div className="text-center mb-8">
