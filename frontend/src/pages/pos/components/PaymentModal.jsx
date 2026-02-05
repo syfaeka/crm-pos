@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { X, Printer, Download, CheckCircle, Receipt, Coins } from 'lucide-react';
 import { cn } from '../../../lib/utils';
 import api from '../../../lib/api';
+import { dataTagSymbol } from '@tanstack/react-query';
 
 export default function PaymentModal({ open, onClose, totals, cart, onSuccess }) {
     if (!open) return null;
@@ -98,7 +99,6 @@ export default function PaymentModal({ open, onClose, totals, cart, onSuccess })
 
             const { data } = await api.post('/sales', payload);
 
-            // Simpan hasil respons backend ke state untuk ditampilkan
             setSaleResult({
                 ...data.data, 
                 cart: cart,
@@ -449,4 +449,4 @@ export default function PaymentModal({ open, onClose, totals, cart, onSuccess })
             </div>
         </div>
     );
-}
+} 
