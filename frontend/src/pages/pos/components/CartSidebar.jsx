@@ -35,20 +35,13 @@ export default function CartSidebar({ cart, onUpdateQty, onRemove, onCheckout, o
         }
     }, []);
 
-    // --- FIX 1: AUTO RESET SAAT KERANJANG KOSONG ---
-    // Mencegah voucher/customer nyangkut di transaksi berikutnya
     useEffect(() => {
         if (cart.length === 0) {
             setVoucher(null);
             setVoucherCode('');
             setVoucherError('');
-            // Optional: Reset customer juga kalau mau
-            // setSelectedCustomer(null);
-            // setCustomerSearch('');
-            // setFavorites([]);
         }
     }, [cart.length]); 
-    // ------------------------------------------------
 
     // CALCULATE TIER 
     const getTierInfo = (customer) => {
@@ -62,7 +55,7 @@ export default function CartSidebar({ cart, onUpdateQty, onRemove, onCheckout, o
 
     const customerTier = selectedCustomer ? getTierInfo(selectedCustomer) : null;
 
-    // --- CALCULATIONS ---
+    // CALCULATIONS 
     const subtotal = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
 
     // Calculate estimated tier discount
@@ -71,7 +64,7 @@ export default function CartSidebar({ cart, onUpdateQty, onRemove, onCheckout, o
 
     const voucherDiscountAmount = voucher?.discount_amount || 0;
 
-    // Total discount (Hanya untuk tampilan di Sidebar)
+    // Total discount 
     const totalDiscount = tierDiscountAmount + voucherDiscountAmount;
 
     const taxableAmount = subtotal - totalDiscount;
@@ -81,7 +74,7 @@ export default function CartSidebar({ cart, onUpdateQty, onRemove, onCheckout, o
     const total = Math.max(0, taxableAmount + tax);
     const pointsEarned = Math.floor(total / 10000);
 
-    // --- CUSTOMER LOGIC ---
+    // CUSTOMER LOGIC 
     const handleSearchCustomer = async (value) => {
         setCustomerSearch(value);
         setIsSearchingCustomer(true);
@@ -122,7 +115,7 @@ export default function CartSidebar({ cart, onUpdateQty, onRemove, onCheckout, o
         setFavorites([]);
     };
 
-    // --- VOUCHER LOGIC ---
+    // VOUCHER LOGIC 
     const applyVoucher = async () => {
         if (!voucherCode.trim()) return;
         setVoucherLoading(true);
@@ -165,7 +158,7 @@ export default function CartSidebar({ cart, onUpdateQty, onRemove, onCheckout, o
                 </button>
             </div>
 
-            {/* --- CUSTOMER SELECTOR --- */}
+            {/* CUSTOMER SELECTOR  */}
             <div className="px-4 py-3 bg-gray-50 border-b border-gray-100 relative z-20">
                 {selectedCustomer ? (
                     <div className="space-y-3">

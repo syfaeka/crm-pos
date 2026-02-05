@@ -31,7 +31,7 @@ export default function PaymentModal({ open, onClose, totals, cart, onSuccess })
     // Calculate final totals
     const initialTotal = totals.total;
 
-    // Determine max deductible amount (cannot exceed total)
+    // Determine max deductible amount
     let redeemAmount = 0;
     let redeemedPointsCount = 0;
 
@@ -70,9 +70,9 @@ export default function PaymentModal({ open, onClose, totals, cart, onSuccess })
                 customer_id: totals.customer ? totals.customer.id : null,
 
                 // Kirim data diskon/voucher
-                discount_value: totals.discount || 0, // Ini biasanya voucher
-                discount_type: totals.discountType || 'fixed', // Tambahkan ini jika ada di state PosPage
-                voucher_code: totals.voucherCode || null,      // Tambahkan ini jika ada di state PosPage
+                discount_value: totals.discount || 0, 
+                discount_type: totals.discountType || 'fixed', 
+                voucher_code: totals.voucherCode || null,      
                 
                 tax_amount: totals.tax || 0,
                 notes: '',
@@ -83,7 +83,7 @@ export default function PaymentModal({ open, onClose, totals, cart, onSuccess })
                     discount: 0
                 })),
 
-                //  NEW: POINTS REDEMPTION 
+                // POINTS REDEMPTION 
                 use_points: usePoints,
                 points_amount: usePoints ? redeemedPointsCount : 0,
 
@@ -100,7 +100,7 @@ export default function PaymentModal({ open, onClose, totals, cart, onSuccess })
 
             // Simpan hasil respons backend ke state untuk ditampilkan
             setSaleResult({
-                ...data.data, // Data lengkap dari backend (termasuk voucher_amount, tier_discount, dll)
+                ...data.data, 
                 cart: cart,
                 paymentMethod: paymentMethod,
                 cashGiven: parseInt(cashGiven) || finalTotal,
@@ -156,7 +156,7 @@ export default function PaymentModal({ open, onClose, totals, cart, onSuccess })
                 <div class="line"></div>
                 <div class="row"><span>Subtotal:</span><span>Rp ${parseInt(saleResult?.subtotal || 0).toLocaleString('id-ID')}</span></div>
                 
-                ${/* --- UPDATED: DISKON VOUCHER, MEMBER, & POIN --- */ ''}
+                ${/* DISKON VOUCHER, MEMBER, & POIN */ ''}
                 
                 ${saleResult?.tier_discount_amount > 0 ? `<div class="row"><span>Member Disc (${saleResult.tier_name}):</span><span>-Rp ${parseInt(saleResult.tier_discount_amount).toLocaleString('id-ID')}</span></div>` : ''}
                 
@@ -234,7 +234,7 @@ export default function PaymentModal({ open, onClose, totals, cart, onSuccess })
                                 )}
                             </div>
 
-                            {/* --- UPDATED: PREVIEW DISKON DI LAYAR --- */}
+                            {/* UPDATED: PREVIEW DISKON DI LAYAR */}
                             {(saleResult.points_redeemed > 0 || saleResult.tier_discount_amount > 0 || saleResult.voucher_amount > 0) && (
                                 <div className="border-t border-gray-200 mt-3 pt-2 text-xs text-green-600 space-y-1">
                                     {saleResult.tier_discount_amount > 0 && (
