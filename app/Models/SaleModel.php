@@ -61,7 +61,6 @@ class SaleModel extends Model
      */
     public function getSaleWithDetails(int $saleId): ?object
     {
-        // Gunakan find() agar mengambil SEMUA kolom (termasuk voucher_amount dll)
         $sale = $this->find($saleId);
         
         if (!$sale) {
@@ -97,7 +96,6 @@ class SaleModel extends Model
             ->where('DATE(s.transaction_date)', $date)
             ->where('s.status', 'completed');
 
-        // Scope by branch or tenant
         if ($branchId) {
             $builder->where('s.branch_id', $branchId);
         } elseif ($tenantId) {
@@ -107,8 +105,6 @@ class SaleModel extends Model
         }
 
         $result = $builder->get()->getRow();
-
-        // Payment breakdown
         $paymentBuilder = $db->table('payments p')
             ->select('p.payment_method, SUM(p.amount) as total')
             ->join('sales s', 's.id = p.sale_id')

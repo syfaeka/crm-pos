@@ -17,11 +17,9 @@ class VoucherController extends BaseApiController
             ->get()
             ->getResultArray();
 
-        // Mapping agar frontend tetap menerima format yang diharapkan
         $mappedVouchers = array_map(function($v) {
             $v['type'] = $v['discount_type']; 
             $v['value'] = $v['discount_value'];
-            // Prioritaskan kolom baru, fallback ke kolom lama jika kosong
             $v['min_order'] = $v['min_order'] ?? $v['min_purchase'];
             $v['valid_until'] = $v['valid_until'] ?? $v['valid_to'];
             return $v;
@@ -56,30 +54,25 @@ class VoucherController extends BaseApiController
             return $this->error('Invalid voucher code', 404);
         }
 
-        // Cek Tanggal Validasi
         $now = date('Y-m-d H:i:s');
         if ($voucher->valid_from && $now < $voucher->valid_from) {
             return $this->error('Voucher is not yet valid', 400);
         }
         
-        // Cek Expired (Cek kedua kolom jaga-jaga)
         $expiryDate = $voucher->valid_until ?? $voucher->valid_to;
         if ($expiryDate && $now > $expiryDate) {
             return $this->error('Voucher has expired', 400);
         }
 
-        // Cek Limit Penggunaan
         if ($voucher->usage_limit !== null && $voucher->usage_count >= $voucher->usage_limit) {
             return $this->error('Voucher usage limit reached', 400);
         }
 
-        // Cek Minimal Order (Cek kedua kolom)
         $minOrder = $voucher->min_order > 0 ? $voucher->min_order : $voucher->min_purchase;
         if ($minOrder > 0 && $subtotal < $minOrder) {
             return $this->error('Minimum order of Rp ' . number_format($minOrder, 0, ',', '.') . ' required', 400);
         }
 
-        // Hitung Diskon
         $discount = 0;
         if ($voucher->discount_type === 'percentage') {
             $discount = $subtotal * ($voucher->discount_value / 100);
@@ -119,7 +112,6 @@ class VoucherController extends BaseApiController
 
         $db = \Config\Database::connect();
 
-        // Cek Duplikat
         $existing = $db->table('vouchers')
             ->where('tenant_id', $this->tenantId)
             ->where('code', $data['code'])
@@ -130,7 +122,7 @@ class VoucherController extends BaseApiController
             return $this->error('Voucher code already exists', 409);
         }
 
-        // --- PERBAIKAN: Default valid_from ke HARI INI jika kosong ---
+        // PERBAIKAN: Default valid_from ke HARI INI jika kosong
         $validFrom = !empty($data['valid_from']) ? $data['valid_from'] : date('Y-m-d H:i:s');
         $validUntil = !empty($data['valid_until']) ? $data['valid_until'] : null;
 
@@ -138,25 +130,16 @@ class VoucherController extends BaseApiController
             'tenant_id' => $this->tenantId,
             'code' => strtoupper($data['code']),
             'description' => $data['description'] ?? null,
-            
             'discount_type' => $data['type'], 
             'discount_value' => $data['value'],
-            
-            // Isi ke DUA KOLOM (Lama & Baru) supaya aman
             'min_order' => $data['min_order'] ?? 0,
             'min_purchase' => $data['min_order'] ?? 0,
-            
             'max_discount' => $data['max_discount'] ?? null,
             'usage_limit' => $data['usage_limit'] ?? null,
             'usage_count' => 0,
-            
-            // PERBAIKAN DISINI: Pastikan tidak NULL
             'valid_from' => $validFrom, 
-            
-            // Isi ke DUA KOLOM (Lama & Baru)
             'valid_until' => $validUntil,
             'valid_to' => $validUntil,
-            
             'is_active' => true,
             'created_at' => date('Y-m-d H:i:s')
         ];
@@ -189,7 +172,6 @@ class VoucherController extends BaseApiController
         $updateData = [];
         $updateData['updated_at'] = date('Y-m-d H:i:s');
 
-        // Mapping update fields
         if (isset($data['description'])) $updateData['description'] = $data['description'];
         if (isset($data['type']))        $updateData['discount_type'] = $data['type'];
         if (isset($data['value']))       $updateData['discount_value'] = $data['value'];
@@ -197,8 +179,6 @@ class VoucherController extends BaseApiController
         if (isset($data['usage_limit']))  $updateData['usage_limit'] = $data['usage_limit'];
         if (isset($data['is_active']))    $updateData['is_active'] = $data['is_active'];
         if (isset($data['valid_from']))   $updateData['valid_from'] = $data['valid_from'];
-
-        // Update double columns
         if (isset($data['min_order'])) {
             $updateData['min_order'] = $data['min_order'];
             $updateData['min_purchase'] = $data['min_order'];
@@ -207,9 +187,7 @@ class VoucherController extends BaseApiController
             $updateData['valid_until'] = $data['valid_until'];
             $updateData['valid_to'] = $data['valid_until'];
         }
-
         $db->table('vouchers')->where('id', $id)->update($updateData);
-
         $updated = $db->table('vouchers')->where('id', $id)->get()->getRowArray();
         return $this->success($updated, 'Voucher updated');
     }

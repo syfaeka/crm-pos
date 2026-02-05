@@ -69,8 +69,6 @@ class ReportController extends BaseApiController
         $branchId = $this->branchId;
 
         $builder = $this->db->table('sale_items');
-        
-        // JOIN untuk ambil nama asli produk
         $builder->join('sales', 'sales.id = sale_items.sale_id');
         $builder->join('product_variants pv', 'pv.id = sale_items.variant_id', 'left');
         $builder->join('products p', 'p.id = pv.product_id', 'left');
@@ -82,7 +80,6 @@ class ReportController extends BaseApiController
         if ($branchId) {
             $builder->where('sales.branch_id', $branchId);
         }
-
         $builder->where('sales.status', 'completed');
         $builder->where('DATE(sales.transaction_date)', $date);
         $builder->orderBy('sales.transaction_date', 'DESC');
@@ -101,18 +98,13 @@ class ReportController extends BaseApiController
         $limit = $this->request->getGet('limit') ?? 3; 
 
         $builder = $this->db->table('sale_items si');
-        
-        // JOIN agar nama produk konsisten
         $builder->join('sales s', 's.id = si.sale_id');
         $builder->join('product_variants pv', 'pv.id = si.variant_id', 'left');
         $builder->join('products p', 'p.id = pv.product_id', 'left');
-
         $builder->select('COALESCE(p.name, pv.name, si.product_name) as product_name');
         $builder->select('SUM(si.quantity) as total_qty, SUM(si.subtotal) as total_revenue');
-        
         $builder->where('s.status', 'completed');
         $builder->where('DATE(s.transaction_date)', $dateFrom);
-
         if ($this->branchId) {
             $builder->where('s.branch_id', $this->branchId);
         }

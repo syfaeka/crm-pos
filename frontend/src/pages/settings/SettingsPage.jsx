@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Save, Loader2, Store, Palette, Bell, Shield, Moon, Sun, Check, X, Lock, Ticket, Trash2, Plus, Calendar } from 'lucide-react';
 import api from '../../lib/api';
 
-// --- HELPER FUNCTIONS ---
+// HELPER FUNCTIONS 
 const getTheme = () => localStorage.getItem('theme') || 'light';
 const setTheme = (theme) => {
     localStorage.setItem('theme', theme);
@@ -74,7 +74,7 @@ export default function SettingsPage() {
         }
     };
 
-    // --- DEFINISI TABS ---
+    // DEFINISI TABS 
     const allTabs = [
         { id: 'store', label: 'Store Info', icon: Store, roles: ['all'] },
         { id: 'appearance', label: 'Appearance', icon: Palette, roles: ['all'] },
@@ -83,7 +83,6 @@ export default function SettingsPage() {
         { id: 'security', label: 'Security', icon: Shield, roles: ['all'] },
     ];
 
-    // Filter tabs berdasarkan role user
     const tabs = allTabs.filter(tab => 
         tab.roles.includes('all') || (isOwner && tab.roles.includes('owner'))
     );
@@ -125,7 +124,7 @@ export default function SettingsPage() {
                 {/* Content Area */}
                 <div className="flex-1 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700 p-6 min-h-[500px]">
                     
-                    {/* TAB: STORE INFO */}
+                    {}
                     {activeTab === 'store' && (
                         <div className="space-y-6">
                             <h2 className="text-lg font-bold border-b border-gray-100 dark:border-gray-700 pb-2 text-gray-900 dark:text-white">Store Information</h2>
@@ -207,12 +206,12 @@ export default function SettingsPage() {
                         </div>
                     )}
 
-                    {/* TAB: VOUCHERS (Hanya untuk Owner) */}
+                    {}
                     {activeTab === 'vouchers' && isOwner && (
                         <VoucherManager />
                     )}
 
-                    {/* TAB: APPEARANCE */}
+                    {}
                     {activeTab === 'appearance' && (
                         <div className="space-y-6">
                             <h2 className="text-lg font-bold border-b border-gray-100 dark:border-gray-700 pb-2 text-gray-900 dark:text-white">Appearance</h2>
@@ -229,7 +228,7 @@ export default function SettingsPage() {
                         </div>
                     )}
 
-                    {/* TAB: NOTIFICATIONS */}
+                    {}
                     {activeTab === 'notifications' && (
                         <div className="space-y-6">
                             <h2 className="text-lg font-bold border-b border-gray-100 dark:border-gray-700 pb-2 text-gray-900 dark:text-white">Notifications</h2>
@@ -245,7 +244,7 @@ export default function SettingsPage() {
                         </div>
                     )}
 
-                    {/* TAB: SECURITY */}
+                    {}
                     {activeTab === 'security' && (
                         <div className="space-y-6">
                             <h2 className="text-lg font-bold border-b border-gray-100 dark:border-gray-700 pb-2 text-gray-900 dark:text-white">Security</h2>
@@ -284,27 +283,25 @@ export default function SettingsPage() {
     );
 }
 
-// --- KOMPONEN VOUCHER MANAGER ---
+// KOMPONEN VOUCHER MANAGER 
 function VoucherManager() {
     const [vouchers, setVouchers] = useState([]);
     const [loading, setLoading] = useState(false);
     const [isAddOpen, setIsAddOpen] = useState(false);
     
-    // State form disesuaikan dengan Controller: value, min_order, usage_limit, valid_until
     const [newVoucher, setNewVoucher] = useState({
         code: '',
-        type: 'fixed', // 'percentage' or 'fixed'
-        value: '', // GANTI amount JADI value
-        min_order: 0, // GANTI min_purchase JADI min_order
-        usage_limit: 100, // GANTI quota JADI usage_limit
-        valid_until: '' // GANTI expires_at JADI valid_until
+        type: 'fixed', 
+        value: '', 
+        min_order: 0, 
+        usage_limit: 100, 
+        valid_until: '' 
     });
 
     const fetchVouchers = async () => {
         setLoading(true);
         try {
             const res = await api.get('/vouchers');
-            // Pastikan format response backend sesuai
             setVouchers(res.data.data || []);
         } catch (err) {
             console.error('Fetch voucher error:', err);
@@ -330,7 +327,6 @@ function VoucherManager() {
         try {
             await api.post('/vouchers', newVoucher);
             setIsAddOpen(false);
-            // Reset form
             setNewVoucher({ 
                 code: '', 
                 type: 'fixed', 
@@ -380,7 +376,7 @@ function VoucherManager() {
                                 <tr key={v.id}>
                                     <td className="px-4 py-3 text-sm font-bold text-gray-900 dark:text-white">{v.code}</td>
                                     <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">
-                                        {/* Sesuaikan display dengan type */}
+                                        {}
                                         {v.type === 'fixed' 
                                             ? `Rp ${parseInt(v.value).toLocaleString('id-ID')}` 
                                             : `${v.value}%`}

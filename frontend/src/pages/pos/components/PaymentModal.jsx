@@ -14,8 +14,6 @@ export default function PaymentModal({ open, onClose, totals, cart, onSuccess })
 
     //  POINTS REDEMPTION STATE 
     const [usePoints, setUsePoints] = useState(false);
-
-    // Reset points toggle when modal opens/closes
     useEffect(() => {
         if (open) {
             setUsePoints(false);
@@ -69,22 +67,18 @@ export default function PaymentModal({ open, onClose, totals, cart, onSuccess })
                 branch_id: user.branch_id || 1,
 
                 customer_id: totals.customer ? totals.customer.id : null,
-
-                // Kirim data diskon/voucher
                 discount_value: totals.discount || 0, 
                 discount_type: totals.discountType || 'fixed', 
                 voucher_code: totals.voucherCode || null,      
                 
                 tax_amount: totals.tax || 0,
                 notes: '',
-
                 items: cart.map(item => ({
                     variant_id: item.variant_id || item.id, 
                     quantity: item.quantity,
                     discount: 0
                 })),
 
-                // POINTS REDEMPTION 
                 use_points: usePoints,
                 points_amount: usePoints ? redeemedPointsCount : 0,
 
@@ -120,7 +114,6 @@ export default function PaymentModal({ open, onClose, totals, cart, onSuccess })
         const printWindow = window.open('', '_blank', 'width=400,height=600');
         const customerName = saleResult?.customer?.name || totals.customer?.name || 'Guest';
 
-        // Receipt formatting logic
         printWindow.document.write(`
             <html>
             <head>
@@ -234,7 +227,7 @@ export default function PaymentModal({ open, onClose, totals, cart, onSuccess })
                                 )}
                             </div>
 
-                            {/* UPDATED: PREVIEW DISKON DI LAYAR */}
+                            {/*PREVIEW DISKON DI LAYAR */}
                             {(saleResult.points_redeemed > 0 || saleResult.tier_discount_amount > 0 || saleResult.voucher_amount > 0) && (
                                 <div className="border-t border-gray-200 mt-3 pt-2 text-xs text-green-600 space-y-1">
                                     {saleResult.tier_discount_amount > 0 && (
